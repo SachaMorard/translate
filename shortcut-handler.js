@@ -17,7 +17,8 @@ class ShortcutHandler {
   }
 
   start() {
-    this.listener.addListener((e, down) => {
+    try {
+      this.listener.addListener((e, down) => {
       // 'down' is a map of currently pressed keys
       // Check if Command (META) key is currently pressed
       const cmdPressed = down['LEFT META'] || down['RIGHT META'];
@@ -36,9 +37,13 @@ class ShortcutHandler {
       if (e.name === 'C' && !cPressed) {
         this.cKeyWasPressed = false;
       }
-    });
+      });
 
-    console.log('Global keyboard shortcut handler started (double Cmd+C for translate, triple Cmd+C for spell check)');
+      console.log('Global keyboard shortcut handler started (double Cmd+C for translate, triple Cmd+C for spell check)');
+    } catch (error) {
+      console.error('Failed to start keyboard listener:', error.message);
+      throw error;
+    }
   }
 
   handleCmdC() {

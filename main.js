@@ -44,11 +44,22 @@ app.whenReady().then(() => {
   // Initialize translator
   translator = new Translator();
 
-  // Initialize shortcut handler
-  shortcutHandler = new ShortcutHandler(translator, showNotification);
-  shortcutHandler.start();
-
+  // Create window first
   createWindow();
+
+  // Initialize shortcut handler (only works in development mode)
+  // In production, the native modules don't work properly from asar
+  if (!app.isPackaged) {
+    try {
+      shortcutHandler = new ShortcutHandler(translator, showNotification);
+      shortcutHandler.start();
+      console.log('Keyboard shortcuts enabled (development mode)');
+    } catch (error) {
+      console.error('Failed to initialize keyboard shortcuts:', error.message);
+    }
+  } else {
+    console.log('Keyboard shortcuts disabled (production mode - use UI only)');
+  }
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
