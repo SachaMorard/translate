@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
+  <title>Translate App</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div class="mode-tabs">
+        <button id="translateTab" class="mode-tab active">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"></path>
+          </svg>
+          Translate
+        </button>
+        <button id="spellCheckTab" class="mode-tab">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"></path>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
+          Spell Check
+        </button>
+      </div>
+    </header>
+
+    <div id="translateMode" class="mode-content active">
+      <main class="main-content">
+        <div class="translation-panel">
+          <div class="input-section">
+            <div class="section-header">
+              <span class="section-title">Original Text</span>
+              <span id="detectedLangBadge" class="lang-badge hidden"></span>
+            </div>
+            <textarea
+              id="sourceText"
+              class="text-input"
+              placeholder="Type or paste any text in French or English..."
+              spellcheck="false"
+            ></textarea>
+            <div class="footer">
+              <span id="sourceCount" class="char-count">0 characters</span>
+            </div>
+          </div>
+
+          <div class="output-section">
+            <div class="section-header">
+              <span class="section-title">Translation</span>
+              <span id="targetLangBadge" class="lang-badge hidden"></span>
+            </div>
+            <div id="translationOutput" class="text-output">
+              <div class="placeholder">Translation will appear here automatically...</div>
+            </div>
+            <div id="loadingIndicator" class="loading-indicator hidden">
+              <div class="spinner"></div>
+              <span>Translating...</span>
+            </div>
+            <div id="errorMessage" class="error-message hidden"></div>
+            <div class="footer">
+              <span id="targetCount" class="char-count">0 characters</span>
+              <button id="copyTranslationBtn" class="copy-button hidden">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <div id="spellCheckMode" class="mode-content">
+      <main class="main-content">
+        <div class="spellcheck-panel">
+          <div class="input-section">
+            <textarea
+              id="spellCheckInput"
+              class="text-input"
+              placeholder="Type or paste text to check spelling and grammar..."
+              spellcheck="false"
+            ></textarea>
+            <div class="footer">
+              <span id="spellCheckInputCount" class="char-count">0 characters</span>
+            </div>
+          </div>
+
+          <div class="output-section">
+            <div id="spellCheckOutput" class="text-output">
+              <div class="placeholder">Corrected text will appear here...</div>
+            </div>
+            <div id="spellCheckLoading" class="loading-indicator hidden">
+              <div class="spinner"></div>
+              <span>Checking spelling...</span>
+            </div>
+            <div id="spellCheckError" class="error-message hidden"></div>
+            <div class="footer">
+              <span id="spellCheckOutputCount" class="char-count">0 characters</span>
+              <button id="copySpellCheckBtn" class="copy-button hidden">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <footer class="app-footer">
+      <div class="shortcut-info">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M12 16v-4M12 8h.01"></path>
+        </svg>
+        <span>Quick Translate: <kbd>⌘C</kbd> twice • Spell Check: <kbd>⌘C</kbd> three times</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
