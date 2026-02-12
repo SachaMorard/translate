@@ -65,7 +65,7 @@ class Translator {
       'en': 'English'
     };
 
-    const prompt = `Translate the following ${langNames[sourceLang]} text to ${langNames[targetLang]}. Return only the translation, no explanations or additional text.
+    const prompt = `Translate the following ${langNames[sourceLang]} text to ${langNames[targetLang]}.
 
 Text to translate:
 ${text}`;
@@ -75,6 +75,10 @@ ${text}`;
         model: this.model,
         input: {
           messages: [
+            {
+              role: 'system',
+              content: 'You are a translator. You are given a text in a source language and you need to translate it to a target language. You must translate the text as accurately as possible, finding the most accurate version of the text in the target language. You are only allowed to return the translation, no explanations or additional text.'
+            },
             {
               role: 'user',
               content: prompt
