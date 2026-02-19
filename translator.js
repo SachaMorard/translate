@@ -123,7 +123,7 @@ ${text}`;
       return '';
     }
 
-    const prompt = `You are a spell checker. Check the following text for spelling, grammar, and punctuation errors. Return ONLY the corrected text with no explanations, no comments, and no additional text. If the text is already correct, return it as-is.
+    const prompt = `Check the following text for spelling, grammar, and punctuation errors. If the text is already correct, return it as-is.
 
 Text to check:
 ${text}`;
@@ -133,6 +133,10 @@ ${text}`;
         model: this.model,
         input: {
           messages: [
+            {
+              role: 'system',
+              content: 'You are a spell checker. You are given a text and you need to check it for spelling, grammar, and punctuation errors. You are only allowed to return the corrected text, no explanations or additional text.'
+            },
             {
               role: 'user',
               content: prompt
