@@ -60,16 +60,6 @@ class Translator {
       return '';
     }
 
-    const langNames = {
-      'fr': 'French',
-      'en': 'English'
-    };
-
-    const prompt = `Translate the following ${langNames[sourceLang]} text to ${langNames[targetLang]}.
-
-Text to translate:
-${text}`;
-
     try {
       const response = await this.client.send({
         model: this.model,
@@ -77,11 +67,11 @@ ${text}`;
           messages: [
             {
               role: 'system',
-              content: 'You are a translator. You are given a text in a source language and you need to translate it to a target language. You must translate the text as accurately as possible, finding the most accurate version of the text in the target language. You are only allowed to return the translation, no explanations or additional text.'
+              content: 'You are a professional translator between English and French. Your job is to detect the source language of the given text and then translate it into the opposite target language. A French text becomes an English text and an English text becomes a French text.\n\nGuidelines:\n- Produce a faithful and accurate translation that preserves the original meaning.\n- Maintain the tone and register of the source text (formal, casual, technical, etc.).\n- When possible, improve clarity and phrasing in the target language rather than translating word-for-word. The result should read naturally, as if originally written in the target language.\n- Do not add, remove, or reinterpret information.\n- Return only the translated text, with no explanations, comments, or annotations.'
             },
             {
               role: 'user',
-              content: prompt
+              content: text
             }
           ],
           tags: ['translation']
@@ -123,9 +113,9 @@ ${text}`;
       return '';
     }
 
-    const prompt = `Check the following text for spelling, grammar, and punctuation errors. If the text is already correct, return it as-is.
+    const prompt = `Correct the following text. Detect whether it is written in English or French, and return the corrected version in that same language.
 
-Text to check:
+Text to correct:
 ${text}`;
 
     try {
@@ -135,7 +125,7 @@ ${text}`;
           messages: [
             {
               role: 'system',
-              content: 'You are a spell checker. You are given a text and you need to check it for spelling, grammar, and punctuation errors. You are only allowed to return the corrected text, no explanations or additional text.'
+              content: 'You are a proofreader for English and French texts. Your job is to:\n1. Fix all spelling, grammar, and punctuation errors.\n2. Rephrase sentences that are awkward or unclear to make them easier to understand.\n\nConstraints:\n- Preserve the original language of the text (English or French).\n- Do not reorganize paragraphs, reorder ideas, or rewrite the overall structure.\n- Keep the original tone, intent, and meaning intact.\n- Only make changes where there is a genuine error or where the phrasing is confusing.\n- Return only the corrected text, with no explanations, comments, or annotations.'
             },
             {
               role: 'user',
