@@ -20,7 +20,7 @@ A macOS-focused translation app for French ↔ English translation using Edgee G
    - Add your Edgee API key:
      ```
      EDGEE_API_KEY=your-api-key-here
-     EDGEE_MODEL=anthropic/claude-sonnet-4.5
+     EDGEE_MODEL=anthropic/claude-sonnet-4.6
      ```
 
 3. **Run the app:**
@@ -67,7 +67,7 @@ The built app will be in the `dist` folder.
 
 Edit `.env` to customize:
 - `EDGEE_API_KEY`: Your Edgee API key
-- `EDGEE_MODEL`: AI model to use (default: anthropic/claude-sonnet-4.5)
+- `EDGEE_MODEL`: AI model to use (default: anthropic/claude-sonnet-4.6)
 - `SHORTCUT_DELAY_MS`: Time window for double ⌘C (default: 500ms)
 
 ## Troubleshooting

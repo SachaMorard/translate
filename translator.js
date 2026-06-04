@@ -8,7 +8,7 @@ class Translator {
     this.client = new Edgee({
       apiKey: process.env.EDGEE_API_KEY,
     });
-    this.model = process.env.EDGEE_MODEL || 'claude-sonnet-4.5';
+    this.model = process.env.EDGEE_MODEL || 'claude-sonnet-4.6';
   }
 
   /**
@@ -66,12 +66,8 @@ class Translator {
         input: {
           messages: [
             {
-              role: 'system',
-              content: 'You are a professional translator between English and French. Your job is to detect the source language of the given text and then translate it into the opposite target language. A French text becomes an English text and an English text becomes a French text.\n\nGuidelines:\n- Produce a faithful and accurate translation that preserves the original meaning.\n- Maintain the tone and register of the source text (formal, casual, technical, etc.).\n- When possible, improve clarity and phrasing in the target language rather than translating word-for-word. The result should read naturally, as if originally written in the target language.\n- Do not add, remove, or reinterpret information.\n- Return only the translated text, with no explanations, comments, or annotations.'
-            },
-            {
               role: 'user',
-              content: text
+              content: 'You are a professional translator between English and French. Your job is to detect the source language of the given text and then translate it into the opposite target language. A French text becomes an English text and an English text becomes a French text.\n\nGuidelines:\n- Produce a faithful and accurate translation that preserves the original meaning.\n- Maintain the tone and register of the source text (formal, casual, technical, etc.).\n- When possible, improve clarity and phrasing in the target language rather than translating word-for-word. The result should read naturally, as if originally written in the target language.\n- Do not add, remove, or reinterpret information.\n- Return only the translated text, with no explanations, comments, or annotations.\n- Never use "—" characters, and if you see it in the text to translate, replace it.\n\nText to translate:\n' + text
             }
           ],
           tags: ['translation']
@@ -113,7 +109,16 @@ class Translator {
       return '';
     }
 
-    const prompt = `Correct the following text. Detect whether it is written in English or French, and return the corrected version in that same language.
+    const prompt = `You are a proofreader for English and French texts. Your job is to:
+1. Fix all spelling, grammar, and punctuation errors.
+2. Rephrase sentences that are awkward or unclear to make them easier to understand.
+
+Constraints:
+- Preserve the original language of the text (English or French).
+- Do not reorganize paragraphs, reorder ideas, or rewrite the overall structure.
+- Keep the original tone, intent, and meaning intact.
+- Only make changes where there is a genuine error or where the phrasing is confusing.
+- Return only the corrected text, with no explanations, comments, or annotations.
 
 Text to correct:
 ${text}`;
@@ -124,16 +129,12 @@ ${text}`;
         input: {
           messages: [
             {
-              role: 'system',
-              content: 'You are a proofreader for English and French texts. Your job is to:\n1. Fix all spelling, grammar, and punctuation errors.\n2. Rephrase sentences that are awkward or unclear to make them easier to understand.\n\nConstraints:\n- Preserve the original language of the text (English or French).\n- Do not reorganize paragraphs, reorder ideas, or rewrite the overall structure.\n- Keep the original tone, intent, and meaning intact.\n- Only make changes where there is a genuine error or where the phrasing is confusing.\n- Return only the corrected text, with no explanations, comments, or annotations.'
-            },
-            {
               role: 'user',
               content: prompt
             }
           ],
           tags: ['translation']
-        }        
+        }
       });
 
       const correctedText = response.text?.trim() || text;
