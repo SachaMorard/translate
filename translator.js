@@ -1,14 +1,12 @@
 import Edgee from 'edgee';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import config from './config.js';
 
 class Translator {
   constructor() {
     this.client = new Edgee({
-      apiKey: process.env.EDGEE_API_KEY,
+      apiKey: config.EDGEE_API_KEY,
     });
-    this.model = process.env.EDGEE_MODEL || 'claude-sonnet-4.6';
+    this.model = config.EDGEE_MODEL;
   }
 
   /**

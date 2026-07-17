@@ -1,6 +1,7 @@
 import { clipboard } from 'electron';
 import robot from 'robotjs';
 import { GlobalKeyboardListener } from 'node-global-key-listener';
+import config from './config.js';
 
 class ShortcutHandler {
   constructor(translator, notificationCallback, keyServerPath) {
@@ -16,7 +17,7 @@ class ShortcutHandler {
     this.cmdCPressCount = 0;
     this.lastCmdCTime = 0;
     this.cmdCTimer = null;
-    this.shortcutDelay = parseInt(process.env.SHORTCUT_DELAY_MS || '500');
+    this.shortcutDelay = parseInt(config.SHORTCUT_DELAY_MS || '500');
     this.isProcessing = false;
     this.isSpellChecking = false;
     this.cKeyWasPressed = false;

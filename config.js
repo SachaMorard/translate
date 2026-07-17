@@ -1,0 +1,32 @@
+// Shared build/runtime config loader.
+// Packaged config injected at build time (config.build.json in app.asar).
+// Falls back to .env / process.env in development.
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const buildConfigPath = path.join(__dirname, 'config.build.json');
+let buildConfig = {};
+if (fs.existsSync(buildConfigPath)) {
+  try {
+    buildConfig = JSON.parse(fs.readFileSync(buildConfigPath, 'utf8'));
+  } catch (e) {
+    console.error('Failed to read config.build.json:', e.message);
+  }
+}
+
+// dotenv is a dev convenience (reads .env from cwd). Harmless in packaged mode.
+dotenv.config();
+
+// process.env takes precedence over the baked-in build config so dev overrides win.
+export const config = {
+  EDGEE_API_KEY: process.env.EDGEE_API_KEY || buildConfig.EDGEE_API_KEY || '',
+  EDGEE_MODEL: process.env.EDGEE_MODEL || buildConfig.EDGEE_MODEL || 'claude-sonnet-4.6',
+  SHORTCUT_DELAY_MS: process.env.SHORTCUT_DELAY_MS || buildConfig.SHORTCUT_DELAY_MS || '500',
+};
+
+export default config;

@@ -6,6 +6,8 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "gen-config": "node scripts/gen-config.cjs",
+    "prebuild": "node scripts/gen-config.cjs",
     "build": "electron-builder --mac"
   },
   "keywords": [
@@ -33,13 +35,19 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "target": "dmg"
+      "target": "dmg",
+      "hardenedRuntime": true,
+      "signIgnore": [
+        "node-global-key-listener/bin/MacKeyServer$"
+      ]
     },
     "files": [
       "**/*",
       "!dist",
       "!.git",
-      "!node_modules/.cache"
+      "!node_modules/.cache",
+      "!.env",
+      "!scripts"
     ]
   }
 }
