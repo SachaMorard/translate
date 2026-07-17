@@ -57,6 +57,16 @@ npm run build
 
 The built app will be in the `dist` folder.
 
+### Install and enable global shortcuts
+
+1. Open the generated `.dmg` from `dist`.
+2. Drag **Translate App** into **Applications**.
+3. Launch it from **Applications** once, then keep it in the Dock if desired.
+4. Open **System Settings → Privacy & Security → Accessibility**.
+5. Enable **Translate App**, then quit and reopen it.
+
+The installed app must remain at the same path after Accessibility permission is granted. Rebuilding or moving the app can make macOS request permission again.
+
 ## Requirements
 
 - macOS (for keyboard shortcuts and clipboard automation)
@@ -73,7 +83,10 @@ Edit `.env` to customize:
 ## Troubleshooting
 
 **Global shortcuts not working:**
-- Make sure to grant Accessibility permissions to the app in System Preferences → Security & Privacy → Privacy → Accessibility
+- Install the app in `/Applications`; do not run it directly from the mounted `.dmg`
+- Grant Accessibility permission in System Settings → Privacy & Security → Accessibility
+- Quit and reopen the app after changing permission
+- Remove an older Translate App entry from Accessibility and add the installed app again if macOS retained stale permission data
 
 **Translation fails:**
 - Check that your Edgee API key is valid

@@ -47,19 +47,29 @@ app.whenReady().then(() => {
   // Create window first
   createWindow();
 
-  // Initialize shortcut handler (only works in development mode)
-  // In production, the native modules don't work properly from asar
-  if (!app.isPackaged) {
-    try {
-      shortcutHandler = new ShortcutHandler(translator, showNotification);
-      shortcutHandler.start();
-      console.log('Keyboard shortcuts enabled (development mode)');
-    } catch (error) {
+  // Native modules are unpacked by electron-builder. Pass the helper's real
+  // filesystem path explicitly because executables cannot run from app.asar.
+  const keyServerPath = app.isPackaged
+    ? path.join(
+        process.resourcesPath,
+        'app.asar.unpacked',
+        'node_modules',
+        'node-global-key-listener',
+        'bin',
+        'MacKeyServer'
+      )
+    : undefined;
+
+  shortcutHandler = new ShortcutHandler(translator, showNotification, keyServerPath);
+  shortcutHandler.start()
+    .then(() => console.log(`Keyboard shortcuts enabled (${app.isPackaged ? 'packaged' : 'development'} mode)`))
+    .catch((error) => {
       console.error('Failed to initialize keyboard shortcuts:', error.message);
-    }
-  } else {
-    console.log('Keyboard shortcuts disabled (production mode - use UI only)');
-  }
+      showNotification(
+        'Keyboard Shortcuts Unavailable',
+        'Allow Translate App in System Settings → Privacy & Security → Accessibility, then restart it.'
+      );
+    });
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -3,10 +3,16 @@ import robot from 'robotjs';
 import { GlobalKeyboardListener } from 'node-global-key-listener';
 
 class ShortcutHandler {
-  constructor(translator, notificationCallback) {
+  constructor(translator, notificationCallback, keyServerPath) {
     this.translator = translator;
     this.notificationCallback = notificationCallback;
-    this.listener = new GlobalKeyboardListener();
+    this.listener = new GlobalKeyboardListener({
+      mac: {
+        ...(keyServerPath ? { serverPath: keyServerPath } : {}),
+        onError: (code) => console.error(`Keyboard helper exited with code ${code}`),
+        onInfo: (message) => console.log(`Keyboard helper: ${message.trim()}`)
+      }
+    });
     this.cmdCPressCount = 0;
     this.lastCmdCTime = 0;
     this.cmdCTimer = null;
@@ -16,9 +22,9 @@ class ShortcutHandler {
     this.cKeyWasPressed = false;
   }
 
-  start() {
+  async start() {
     try {
-      this.listener.addListener((e, down) => {
+      await this.listener.addListener((e, down) => {
       // 'down' is a map of currently pressed keys
       // Check if Command (META) key is currently pressed
       const cmdPressed = down['LEFT META'] || down['RIGHT META'];
