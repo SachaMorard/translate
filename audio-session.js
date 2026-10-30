@@ -21,6 +21,7 @@ export class AudioSession {
     this.sequence = 0;
     this.closed = false;
     this.stopping = false;
+    this.translationAbort = new AbortController();
   }
 
   async start() {
@@ -36,7 +37,7 @@ export class AudioSession {
         headers: { Authorization: `Bearer ${this.apiKey}` }, handshakeTimeout: 15000,
         maxPayload: 1024 * 1024
       });
-      const channel = { socket, ready: false, bufferedBytes: 0, pending: 0, items: new Map() };
+      const channel = { socket, ready: false, bufferedBytes: 0, pending: 0, items: new Map(), previews: new Map() };
       this.channels.set(source, channel);
       const timeout = setTimeout(() => fail('Audio connection timed out. Please retry.'), 20000);
       const fail = message => {
@@ -50,7 +51,7 @@ export class AudioSession {
         socket.send(JSON.stringify({ type: 'session.update', session: {
           type: 'transcription', audio: { input: {
             format: { type: 'audio/pcm', rate: 24000 },
-            transcription: { model: 'gpt-live-transcribe', languages: this.pair, delay: 'low' },
+            transcription: { model: 'gpt-live-transcribe', languages: this.pair, delay: 'minimal' },
             turn_detection: null
           } }
         } }));
@@ -69,6 +70,7 @@ export class AudioSession {
             const item = this.item(channel, source, event.item_id);
             item.transcript += event.delta || '';
             this.emit({ type: 'subtitle', source, ...item, status: 'transcribing' });
+            this.preview(channel, source, item);
           } else if (event.type === 'conversation.item.input_audio_transcription.completed') {
             void this.complete(channel, source, event).catch(error => fail(error.message));
           } else if (event.type === 'conversation.item.input_audio_transcription.failed') {
@@ -92,20 +94,56 @@ export class AudioSession {
     return item;
   }
 
+  preview(channel, source, item) {
+    // One provisional translation per turn, then a final correction. Avoid
+    // re-requesting on every token or cutting the audio in the middle of a word.
+    if (item.completed || item.transcript.trim().length < 20 || channel.previews.has(item.id)) return;
+    const preview = { controller: new AbortController() };
+    channel.previews.set(item.id, preview);
+    preview.timer = setTimeout(async () => {
+      if (this.closed || item.completed) return;
+      preview.text = item.transcript.trim();
+      try {
+        preview.result = await this.translator.autoTranslate(preview.text, this.pair, {
+          signal: AbortSignal.any([this.translationAbort.signal, preview.controller.signal]),
+          onProgress: translation => {
+            if (item.completed || preview.controller.signal.aborted || this.closed) return;
+            item.translation = translation;
+            this.emit({ type: 'subtitle', source, ...item, status: 'translating' });
+          }
+        });
+      } catch { /* The final transcript gets its own request and error handling. */ }
+    }, 300);
+  }
+
   async complete(channel, source, event) {
     const item = this.item(channel, source, event.item_id);
     if (item.completed) return;
     item.completed = true;
     item.transcript = event.transcript?.trim() || '';
+    const preview = channel.previews.get(item.id);
+    if (preview) { clearTimeout(preview.timer); preview.controller.abort(); }
     try {
       if (item.transcript) {
         this.emit({ type: 'subtitle', source, ...item, status: 'translating' });
-        const result = await this.translator.autoTranslate(item.transcript, this.pair);
+        const result = preview?.text === item.transcript && preview.result
+          ? preview.result
+          : await this.translator.autoTranslate(item.transcript, this.pair, {
+            signal: this.translationAbort.signal,
+            onProgress: translation => {
+              // Keep the preview visible until the final stream catches up,
+              // rather than briefly replacing a sentence with its first word.
+              if (translation.length < item.translation.length) return;
+              item.translation = translation;
+              this.emit({ type: 'subtitle', source, ...item, status: 'translating' });
+            }
+          });
         this.emit({ type: 'subtitle', source, ...item, ...result, status: 'complete' });
       } else this.emit({ type: 'subtitle', source, ...item, status: 'empty' });
     } catch (error) {
       this.emit({ type: 'subtitle', source, ...item, status: 'error', error: error.message });
     } finally {
+      channel.previews.delete(item.id);
       channel.pending = Math.max(0, channel.pending - 1);
       // Keep only recent IDs for duplicate-event protection during long sessions.
       if (channel.items.size > 200) {
@@ -159,7 +197,12 @@ export class AudioSession {
   close() {
     if (this.closed) return;
     this.closed = true;
+    this.translationAbort.abort();
     for (const channel of this.channels.values()) {
+      for (const preview of channel.previews.values()) {
+        clearTimeout(preview.timer); preview.controller.abort();
+      }
+      channel.previews.clear();
       channel.cancel();
       channel.socket.terminate();
     }

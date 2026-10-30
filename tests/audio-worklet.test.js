@@ -25,3 +25,16 @@ test('silence is not sent; speech is PCM16 with a pause commit and bounded turns
   assert.ok(events.at(-1).flushed);
   assert.equal(node.process([]),false);
 });
+test('commits a pause at 400 ms and continuous speech at 5 s without dropping quiet syllables',()=>{
+  const {node,events}=processor();
+  node.packet(new Array(2400).fill(0.1));
+  for(let i=0;i<3;i++) node.packet(new Array(2400).fill(0));
+  assert.equal(events.filter(e=>e.commit).length,0);
+  node.packet(new Array(2400).fill(0));
+  assert.equal(events.filter(e=>e.commit).length,1);
+  for(let i=0;i<50;i++) node.packet(new Array(2400).fill(0.1));
+  assert.equal(events.filter(e=>e.commit).length,2);
+  const packets=events.filter(e=>e.pcm).length;
+  node.packet(new Array(2400).fill(0.003));
+  assert.equal(events.filter(e=>e.pcm).length,packets+1);
+});

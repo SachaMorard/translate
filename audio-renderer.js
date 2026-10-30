@@ -1,4 +1,4 @@
-import { LANGUAGES } from './languages.js';
+import { waitForLiveAudio } from './audio-tracks.js';
 const $ = id => document.getElementById(id);
 const sourceName = source => source === 'microphone' ? 'Microphone' : 'Computer';
 
@@ -8,11 +8,13 @@ export class AudioController {
     this.streams = [];
     this.nodes = [];
     this.rows = new Map();
+    this.clearedAt = 0;
     this.run = 0;
     this.state = 'idle';
     $('startAudio').addEventListener('click', () => this.start());
     $('stopAudio').addEventListener('click', () => this.stop());
     $('copySubtitles').addEventListener('click', () => this.copy());
+    $('cleanSubtitles').addEventListener('click', () => this.clearSubtitles());
     this.unsubscribe = window.electronAPI.onAudioEvent(event => this.onEvent(event));
   }
   showError(message = '') {
@@ -22,6 +24,11 @@ export class AudioController {
   status(text) { $('audioStatus').textContent = text; }
   setState(state) {
     this.state = state;
+    document.querySelector('.audio-main').dataset.state = state;
+    $('startAudio').classList.toggle('hidden', state === 'recording' || state === 'stopping');
+    $('stopAudio').classList.toggle('hidden', state !== 'recording' && state !== 'stopping');
+    $('startAudioLabel').textContent = state === 'starting' ? 'Connecting…' : 'Start capture';
+    $('stopAudioLabel').textContent = state === 'stopping' ? 'Finishing…' : 'Stop capture';
     this.lock(state !== 'idle');
     $('stopAudio').disabled = state !== 'recording';
     for (const id of ['captureMicrophone', 'captureSystem']) $(id).disabled = state !== 'idle';
@@ -63,10 +70,15 @@ export class AudioController {
         }
         if (run !== this.run || this.state !== 'starting') { stream.getTracks().forEach(track => track.stop()); return; }
         if (source === 'microphone') this.streams.push(stream);
-        const tracks = stream.getAudioTracks();
-        if (!tracks.length || tracks.every(track => track.muted || track.readyState !== 'live')) {
-          throw new Error(`${sourceName(source)} audio is unavailable. For computer audio, use macOS 14.2+ and allow System Audio Recording in System Settings. When using npm start, allow your terminal or IDE, then restart it.`);
+        let tracks;
+        try { tracks = await waitForLiveAudio(stream); }
+        catch (error) {
+          const help = source === 'system'
+            ? 'Computer audio requires macOS 14.2+ and System Audio Recording permission. With npm start, quit and reopen your terminal or IDE after granting permission, then restart the app.'
+            : 'Allow Microphone access in macOS Privacy & Security and check your input device.';
+          throw new Error(`${sourceName(source)} audio is unavailable: ${error.message} ${help}`);
         }
+        if (run !== this.run || this.state !== 'starting') return;
         for (const track of stream.getTracks()) {
           track.addEventListener('ended', () => {
             if (this.state === 'recording' || this.state === 'starting') {
@@ -105,7 +117,7 @@ export class AudioController {
       this.rows.clear(); $('subtitles').replaceChildren(); $('copySubtitles').disabled = true;
       await this.context.resume();
       if (run !== this.run || this.state !== 'starting') return;
-      this.setState('recording'); this.status('Listening · translating in both directions');
+      this.setState('recording'); this.status('Live');
     } catch (error) {
       if (run !== this.run || this.state !== 'starting') return;
       const hint = ['NotAllowedError', 'NotReadableError'].includes(error.name)
@@ -147,6 +159,8 @@ export class AudioController {
     if (event.sessionId !== this.sessionId) return;
     if (event.type === 'error') { this.showError(event.error); void this.stop(); return; }
     if (event.type !== 'subtitle') return;
+    // Late results for cleared segments must not repopulate the history.
+    if (event.timestamp <= this.clearedAt) return;
     const list = $('subtitles');
     const follow = list.scrollHeight - list.clientHeight - list.scrollTop < 80;
     let row = this.rows.get(event.id);
@@ -155,11 +169,10 @@ export class AudioController {
     }
     if (!row) {
       const element = document.createElement('article'); element.className = 'subtitle';
-      const meta = document.createElement('div'); meta.className = 'subtitle-meta';
       const translated = document.createElement('div'); translated.className = 'subtitle-translation';
       const original = document.createElement('div'); original.className = 'subtitle-original';
-      element.append(meta, translated, original);
-      row = { element, meta, translated, original, event };
+      element.append(original, translated);
+      row = { element, translated, original, event };
       this.rows.set(event.id, row);
       list.append(element);
     }
@@ -176,7 +189,6 @@ export class AudioController {
       }
       if (!changed) break;
     }
-    row.meta.textContent = `${sourceName(event.source)} · ${new Date(event.timestamp).toLocaleTimeString()}${event.targetLang ? ' → ' + LANGUAGES[event.targetLang] : ''}`;
     row.original.textContent = event.transcript;
     row.translated.textContent = event.status === 'error' ? event.error : event.translation || (event.status === 'translating' ? 'Translating…' : 'Listening…');
     row.translated.classList.toggle('subtitle-error', event.status === 'error');
@@ -187,9 +199,16 @@ export class AudioController {
     $('copySubtitles').disabled = ![...this.rows.values()].some(r => r.event.translation);
     if (follow) list.scrollTop = list.scrollHeight;
   }
+  clearSubtitles() {
+    this.clearedAt = Date.now();
+    this.rows.clear();
+    $('subtitles').replaceChildren();
+    $('subtitles').scrollTop = 0;
+    $('copySubtitles').disabled = true;
+  }
   async copy() {
     const ordered = [...$('subtitles').children].map(element => [...this.rows.values()].find(row => row.element === element));
-    const text = ordered.filter(row => row?.event.translation).map(row => `${row.meta.textContent}\n${row.event.translation}`).join('\n\n');
+    const text = ordered.filter(row => row?.event.translation).map(row => row.event.translation).join('\n\n');
     try { await navigator.clipboard.writeText(text); }
     catch { this.showError('Could not copy subtitles to clipboard.'); }
   }

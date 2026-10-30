@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, Notification, desktopCapturer, session, sy
 import path from 'path';
 import fs from 'node:fs';
 import { AudioSession } from './audio-session.js';
+import { LiveTranslator } from './live-translator.js';
 import config from './config.js';
 import { DEFAULT_PAIR, validatePair } from './languages.js';
 import { fileURLToPath } from 'url';
@@ -178,7 +179,7 @@ ipcMain.handle('audio-start', async (event, sources) => {
   try {
     if (audioSession && !audioSession.closed) throw new Error('Audio capture is already running.');
     const owner = event.sender;
-    const current = new AudioSession({ apiKey: config.OPENAI_API_KEY, translator,
+    const current = new AudioSession({ apiKey: config.OPENAI_API_KEY, translator: new LiveTranslator(),
       pair: translator.languagePair, sources,
       emit: message => { if (!owner.isDestroyed()) owner.send('audio-event', message); }
     });

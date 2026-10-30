@@ -27,6 +27,7 @@ export const config = {
   OPENAI_API_KEY: process.env.OPENAI_API_KEY || buildConfig.OPENAI_API_KEY || '',
   EDGEE_API_KEY: process.env.EDGEE_API_KEY || buildConfig.EDGEE_API_KEY || '',
   EDGEE_MODEL: process.env.EDGEE_MODEL || buildConfig.EDGEE_MODEL || 'gpt-6-luna:openai',
+  EDGEE_LIVE_MODEL: process.env.EDGEE_LIVE_MODEL || buildConfig.EDGEE_LIVE_MODEL || 'gpt-4.1-mini:openai',
   SHORTCUT_DELAY_MS: process.env.SHORTCUT_DELAY_MS || buildConfig.SHORTCUT_DELAY_MS || '500',
 };
 

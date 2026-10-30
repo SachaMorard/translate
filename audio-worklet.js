@@ -23,9 +23,9 @@ class CaptureProcessor extends AudioWorkletProcessor {
     samples.forEach((sample, i) => view.setInt16(i * 2, Math.round(Math.max(-1, Math.min(1, sample)) * 32767), true));
     this.port.postMessage({ pcm: new Uint8Array(buffer) }, [buffer]);
   }
-  commit() {
+  commit(continuous = false) {
     if (this.active) this.port.postMessage({ commit: true });
-    this.active = false;
+    this.active = continuous;
     this.silence = 0;
     this.duration = 0;
     this.preRoll = [];
@@ -43,7 +43,10 @@ class CaptureProcessor extends AudioWorkletProcessor {
       this.preRoll = [];
     } else { this.send(samples); this.duration += samples.length; }
     this.silence = speaking ? 0 : this.silence + samples.length;
-    if (this.silence >= 16800 || this.duration >= 120000) this.commit();
+    // Commit after a 400 ms pause, or every 5 s while speech continues. Keep
+    // forwarding quiet syllables across the time boundary without re-gating them.
+    if (this.silence >= 9600) this.commit();
+    else if (this.duration >= 120000) this.commit(true);
   }
   process(inputs) {
     if (this.flushed) return false;

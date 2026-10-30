@@ -122,22 +122,38 @@
     </div>
 
     <div id="audioMode" class="mode-content">
-      <main class="audio-main">
+      <main class="audio-main" data-state="idle">
         <div class="audio-controls">
-          <label><input type="checkbox" id="captureMicrophone" checked> Microphone <meter id="microphoneLevel" min="0" max="1" value="0" aria-label="Microphone level"></meter></label>
-          <label><input type="checkbox" id="captureSystem" checked> Computer audio <meter id="systemLevel" min="0" max="1" value="0" aria-label="Computer audio level"></meter></label>
-          <button id="startAudio" class="copy-button">Start capture</button>
-          <button id="stopAudio" class="copy-button stop-button" disabled>Stop</button>
+          <div class="audio-sources" role="group" aria-label="Audio sources">
+            <label class="audio-source">
+              <input type="checkbox" id="captureMicrophone" class="source-toggle" checked>
+              <svg class="source-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg>
+              <span class="source-info"><span>Microphone</span><meter id="microphoneLevel" min="0" max="1" value="0" aria-label="Microphone level"></meter></span>
+              <span class="source-switch" aria-hidden="true"></span>
+            </label>
+            <label class="audio-source">
+              <input type="checkbox" id="captureSystem" class="source-toggle" checked>
+              <svg class="source-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8M12 16v5"/></svg>
+              <span class="source-info"><span>Computer audio</span><meter id="systemLevel" min="0" max="1" value="0" aria-label="Computer audio level"></meter></span>
+              <span class="source-switch" aria-hidden="true"></span>
+            </label>
+          </div>
+          <div class="capture-actions">
+            <button id="startAudio" class="audio-button capture-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg><span id="startAudioLabel">Start capture</span></button>
+            <button id="stopAudio" class="audio-button capture-stop hidden" disabled><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect width="12" height="12" rx="2"/></svg><span id="stopAudioLabel">Stop capture</span></button>
+          </div>
         </div>
-        <p class="audio-help">Use headphones to avoid capturing the computer audio twice. On macOS, allow microphone and system audio recording. Audio is sent to OpenAI; transcripts are translated via Edgee.</p>
         <div id="audioError" class="error-message hidden" role="alert"></div>
         <div class="subtitle-heading"><h2>Live subtitles</h2><span id="audioStatus" role="status">Ready</span></div>
         <div id="subtitles" class="subtitles" role="log" aria-label="Live translated subtitles" aria-live="polite" tabindex="0">
-          <p class="placeholder">Start capture to see the translation here. Subtitles update after each pause or short segment.</p>
+          <p class="subtitle-empty">Your live translations will appear here.</p>
         </div>
-        <div class="footer">
-          <span class="char-count">Latest 200 segments · audio is not saved</span>
-          <button id="copySubtitles" class="copy-button" disabled>Copy subtitles</button>
+        <div class="footer audio-footer">
+          <span class="char-count">Latest 200 segments</span>
+          <div class="subtitle-actions">
+            <button id="cleanSubtitles" class="audio-button secondary-button" title="Clear the subtitle history">Clean</button>
+            <button id="copySubtitles" class="audio-button secondary-button" disabled>Copy subtitles</button>
+          </div>
         </div>
       </main>
     </div>

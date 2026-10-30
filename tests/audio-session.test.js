@@ -63,3 +63,55 @@ test('missing key and invalid source selections fail before connecting', () => {
   assert.throws(()=>new AudioSession({apiKey:''}),/OPENAI_API_KEY/);
   assert.throws(()=>setup(['microphone','microphone']),/Choose/);
 });
+test('publishes incremental translations before completion and cancels on close', async () => {
+  const {session,events}=setup(); await session.start();
+  let finish;
+  let signal;
+  session.translator.autoTranslate = async (_text,_pair,options) => {
+    signal=options.signal;
+    options.onProgress('Olá');
+    await new Promise(resolve=>{finish=resolve;});
+    return {translation:'Olá mundo'};
+  };
+  session.channels.get('microphone').socket.event({type:'conversation.item.input_audio_transcription.completed',item_id:'one',transcript:'Hola mundo'});
+  assert.equal(events.at(-1).translation,'Olá');
+  assert.equal(events.at(-1).status,'translating');
+  const count=events.length;
+  session.close(); assert.equal(signal.aborted,true);
+  finish(); await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(events.length,count);
+});
+test('starts a preview before the final transcript and ignores stale preview chunks', async () => {
+  const {session,events}=setup(); await session.start();
+  const calls=[]; let releasePreview;
+  session.translator.autoTranslate=async(text,_pair,options)=>{
+    calls.push({text,options});
+    if(calls.length===1){
+      options.onProgress('Prévia');
+      await new Promise(resolve=>{releasePreview=resolve;});
+      options.onProgress('Stale preview');
+      return {translation:'Stale preview'};
+    }
+    options.onProgress('Final translation');
+    return {translation:'Final translation'};
+  };
+  const socket=session.channels.get('microphone').socket;
+  socket.event({type:'conversation.item.input_audio_transcription.delta',item_id:'one',delta:'Hola, por favor envíame el documento'});
+  await new Promise(resolve=>setTimeout(resolve,350));
+  assert.equal(calls.length,1);assert.equal(events.at(-1).translation,'Prévia');
+  socket.event({type:'conversation.item.input_audio_transcription.delta',item_id:'one',delta:' mañana.'});
+  socket.event({type:'conversation.item.input_audio_transcription.completed',item_id:'one',transcript:'Hola, por favor envíame el documento mañana.'});
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(calls.length,2);assert.equal(calls[0].options.signal.aborted,true);
+  assert.equal(events.at(-1).translation,'Final translation');
+  releasePreview();await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(events.at(-1).translation,'Final translation');
+  session.close();
+});
+test('closing cancels a scheduled preview before it sends a request', async () => {
+  const {session}=setup();await session.start();let calls=0;
+  session.translator.autoTranslate=async()=>{calls++;return {translation:'Unexpected'};};
+  session.channels.get('microphone').socket.event({type:'conversation.item.input_audio_transcription.delta',item_id:'one',delta:'A sufficiently long transcription'});
+  session.close();await new Promise(resolve=>setTimeout(resolve,350));
+  assert.equal(calls,0);
+});

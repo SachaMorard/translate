@@ -30,6 +30,10 @@ app.whenReady().then(async()=>{
     await new Promise(r=>setTimeout(r,1000));
     if($('stopAudio').disabled) throw Error('capture did not start: '+$('audioError').textContent);
     if(!$('languageA').disabled)throw Error('pair unlocked during capture');
+    window.electronAPI.testEmit({type:'subtitle',source:'microphone',id:'streaming',transcript:'Hello everyone',translation:'Bonjour',status:'translating',timestamp:Date.now()});
+    if($('subtitles').querySelector('.subtitle-translation').textContent!=='Bonjour')throw Error('streaming text not displayed');
+    window.electronAPI.testEmit({type:'subtitle',source:'microphone',id:'streaming',transcript:'Hello everyone',translation:'Bonjour à tous',status:'complete',timestamp:Date.now()});
+    if($('subtitles').children.length!==1||$('subtitles').querySelector('.subtitle-translation').textContent!=='Bonjour à tous')throw Error('final caption duplicated instead of updating');
     for(let i=0;i<210;i++)window.electronAPI.testEmit({type:'subtitle',source:'microphone',id:'row'+i,transcript:'Source '+i,translation:'Sous-titre '+i,status:'complete',targetLang:'pt',timestamp:Date.now()});
     // Completion can arrive in reverse order.
     window.electronAPI.testEmit({type:'subtitle',source:'system',id:'second',previousId:'first',transcript:'Second',translation:'Second translated',status:'complete',timestamp:Date.now()});
@@ -39,6 +43,14 @@ app.whenReady().then(async()=>{
     if(rows.at(-1).textContent.indexOf('Second translated')<0)throw Error('subtitle order');
     const copy=$('copySubtitles').getBoundingClientRect();
     if(copy.bottom>innerHeight||$('subtitles').scrollHeight<=$('subtitles').clientHeight)throw Error('subtitle overflow');
+    const oldTimestamp=Date.now()-1000;
+    $('cleanSubtitles').click();
+    if($('subtitles').children.length||!$('copySubtitles').disabled)throw Error('Clean did not clear history');
+    if($('stopAudio').disabled)throw Error('Clean stopped capture');
+    window.electronAPI.testEmit({type:'subtitle',source:'microphone',id:'late',transcript:'Old',translation:'Old result',status:'complete',timestamp:oldTimestamp});
+    if($('subtitles').children.length)throw Error('Cleared subtitle reappeared');
+    window.electronAPI.testEmit({type:'subtitle',source:'microphone',id:'new',transcript:'New',translation:'New result',status:'complete',timestamp:Date.now()+1});
+    if($('subtitles').children.length!==1||$('copySubtitles').disabled)throw Error('New subtitles blocked after Clean');
     $('stopAudio').click();await new Promise(r=>setTimeout(r,700));
     if(testStreams.some(s=>s.getTracks().some(t=>t.readyState!=='ended')))throw Error('capture leaked');
     if($('startAudio').disabled||$('languageA').disabled)throw Error('controls not restored');

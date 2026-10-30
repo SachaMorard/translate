@@ -5,7 +5,7 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "prestart": "node scripts/build-key-server.cjs",
+    "prestart": "node scripts/prepare-dev.cjs && node scripts/build-key-server.cjs",
     "start": "electron .",
     "gen-config": "node scripts/gen-config.cjs",
     "prebuild": "node scripts/gen-config.cjs",
