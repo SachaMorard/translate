@@ -11,7 +11,8 @@
     "prebuild": "node scripts/gen-config.cjs",
     "build": "electron-builder --mac",
     "test": "node --test tests/*.test.js",
-    "test:ui": "electron tests/electron-ui.cjs"
+    "test:ui": "electron tests/electron-ui.cjs",
+    "build:icon": "electron scripts/build-icon.cjs"
   },
   "keywords": [
     "translation",
@@ -51,7 +52,8 @@
         "NSScreenCaptureUsageDescription": "Access system audio for live translated subtitles."
       },
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "icon": "build/icon.icns"
     },
     "files": [
       "**/*",

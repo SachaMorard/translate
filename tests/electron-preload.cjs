@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI',{
  autoTranslate:async text=>({success:true,translation:'Translated '+text,detectedLang:pair[0],targetLang:pair[1]}),
  spellCheck:async text=>({success:true,correctedText:text}),
  startAudio:async()=>({success:true,sessionId:'test-session'}),
+ clearAudio:()=>{},
  stopAudio:async()=>{state.stops++;},
  microphonePermission:async()=>true,
  sendAudio:packet=>{state.packets++;if(packet.commit)state.commits++;},

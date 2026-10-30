@@ -17,7 +17,7 @@ function error(id, message = '') {
 }
 function count(id, text) { $(id).textContent = `${text.length} characters`; }
 function lockLanguages() {
-  for (const id of ['languageA', 'languageB']) $(id).disabled = audioLocked || savingPair || !settingsReady;
+  for (const id of ['languageA', 'languageB', 'swapLanguages']) $(id).disabled = audioLocked || savingPair || !settingsReady;
   $('startAudio').disabled = audioLocked || savingPair || !settingsReady;
 }
 const audio = new AudioController(locked => { audioLocked = locked; lockLanguages(); });
@@ -25,14 +25,35 @@ for (const [tab, mode] of [['translateTab','translateMode'], ['spellCheckTab','s
   $(tab).addEventListener('click', () => {
     document.querySelectorAll('.mode-tab, .mode-content').forEach(el => el.classList.remove('active'));
     $(tab).classList.add('active'); $(mode).classList.add('active');
+    document.querySelectorAll('.mode-tab').forEach(button => {
+      const selected = button.id === tab;
+      button.setAttribute('aria-selected', String(selected));
+      button.tabIndex = selected ? 0 : -1;
+    });
   });
 }
+document.querySelector('.mode-tabs').addEventListener('keydown', event => {
+  const tabs = [...document.querySelectorAll('.mode-tab')];
+  const current = tabs.indexOf(document.activeElement);
+  if (current < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+    : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[next].focus(); tabs[next].click();
+});
 for (const id of ['languageA', 'languageB']) {
   for (const [code, name] of Object.entries(LANGUAGES)) $(id).add(new Option(name, code));
   $(id).addEventListener('change', savePair);
 }
 function displayPair() { $('languageA').value = pair[0]; $('languageB').value = pair[1]; }
+$('swapLanguages').addEventListener('click', () => {
+  if (audioLocked || savingPair || !settingsReady) return;
+  $('languageA').value = pair[1];
+  $('languageB').value = pair[0];
+  void savePair();
+});
 async function savePair() {
+  if (audioLocked || savingPair || !settingsReady) return;
   const next = [$('languageA').value, $('languageB').value];
   if (next[0] === next[1]) {
     error('settingsError', 'Choose two different languages.'); displayPair(); return;
@@ -106,11 +127,14 @@ $('spellCheckInput').addEventListener('input', () => {
   }, 700);
 });
 for (const [button, output, errorId] of [['copyTranslationBtn','translationOutput','errorMessage'], ['copySpellCheckBtn','spellCheckOutput','spellCheckError']]) {
+  const originalContent = $(button).innerHTML;
+  let resetCopy;
   $(button).addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText($(output).textContent);
       $(button).textContent = 'Copied!';
-      setTimeout(() => { $(button).textContent = 'Copy'; }, 1500);
+      clearTimeout(resetCopy);
+      resetCopy = setTimeout(() => { $(button).innerHTML = originalContent; }, 1500);
     } catch { error(errorId, 'Could not copy to clipboard.'); }
   });
 }

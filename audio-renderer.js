@@ -11,11 +11,25 @@ export class AudioController {
     this.clearedAt = 0;
     this.run = 0;
     this.state = 'idle';
+    for (const [id, source] of [['captureMicrophone', 'microphone'], ['captureSystem', 'system']]) {
+      $(id).addEventListener('click', () => {
+        if (this.state !== 'idle') return;
+        $(id).setAttribute('aria-pressed', String($(id).getAttribute('aria-pressed') !== 'true'));
+        this.setLevel(source, 0);
+      });
+    }
     $('startAudio').addEventListener('click', () => this.start());
     $('stopAudio').addEventListener('click', () => this.stop());
     $('copySubtitles').addEventListener('click', () => this.copy());
     $('cleanSubtitles').addEventListener('click', () => this.clearSubtitles());
     this.unsubscribe = window.electronAPI.onAudioEvent(event => this.onEvent(event));
+  }
+  setLevel(source, level) {
+    const meter = $(source + 'Level');
+    const value = Number.isFinite(level) ? Math.max(0, Math.min(1, level)) : 0;
+    meter.setAttribute('aria-valuenow', String(Math.round(value * 100)));
+    const thresholds = [0.015, 0.08, 0.22, 0.5];
+    [...meter.children].forEach((bar, index) => bar.classList.toggle('lit', value >= thresholds[index]));
   }
   showError(message = '') {
     $('audioError').textContent = message;
@@ -37,8 +51,8 @@ export class AudioController {
   async start() {
     if (this.state !== 'idle') return;
     const sources = [];
-    if ($('captureMicrophone').checked) sources.push('microphone');
-    if ($('captureSystem').checked) sources.push('system');
+    if ($('captureMicrophone').getAttribute('aria-pressed') === 'true') sources.push('microphone');
+    if ($('captureSystem').getAttribute('aria-pressed') === 'true') sources.push('system');
     if (!sources.length) return this.showError('Select at least one audio source.');
     const run = ++this.run;
     this.showError(); this.setState('starting'); this.status('Connecting…');
@@ -52,7 +66,7 @@ export class AudioController {
           }, error => ({ error }))
       : null;
     try {
-      const session = await window.electronAPI.startAudio(sources);
+      const session = await window.electronAPI.startAudio({ sources });
       if (!session.success) throw new Error(session.error);
       if (run !== this.run || this.state !== 'starting') { await window.electronAPI.stopAudio(session.sessionId); return; }
       this.sessionId = session.sessionId;
@@ -106,7 +120,7 @@ export class AudioController {
         node.port.onmessage = ({ data }) => {
           if (data.flushed) { entry.onFlushed?.(); return; }
           if (run !== this.run) return;
-          if (typeof data.level === 'number') { $(source + 'Level').value = data.level; return; }
+          if (typeof data.level === 'number') { this.setLevel(source, data.level); return; }
           window.electronAPI.sendAudio({ sessionId: this.sessionId, source, ...data });
         };
         this.nodes.push(entry);
@@ -153,7 +167,7 @@ export class AudioController {
     this.nodes = [];
     if (this.context) void this.context.close();
     this.context = null; this.workletLoaded = false;
-    $('microphoneLevel').value = 0; $('systemLevel').value = 0;
+    this.setLevel('microphone', 0); this.setLevel('system', 0);
   }
   onEvent(event) {
     if (event.sessionId !== this.sessionId) return;
@@ -201,6 +215,7 @@ export class AudioController {
   }
   clearSubtitles() {
     this.clearedAt = Date.now();
+    if (this.sessionId) window.electronAPI.clearAudio(this.sessionId);
     this.rows.clear();
     $('subtitles').replaceChildren();
     $('subtitles').scrollTop = 0;

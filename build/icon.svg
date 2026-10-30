@@ -1,11 +1,16 @@
-<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="1024" height="1024" fill="white"/>
-<rect x="510.176" y="144" width="418.856" height="418.856" rx="80" transform="rotate(45 510.176 144)" fill="#9BC1FF"/>
-<rect x="514.146" y="287.037" width="418.856" height="418.856" rx="80" transform="rotate(45 514.146 287.037)" fill="url(#paint0_linear_3977_232)"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- macOS canvas: 100 px transparent inset around an 824 px rounded tile. -->
+  <defs><clipPath id="macos-tile"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath></defs>
+  <g clip-path="url(#macos-tile)"><g transform="translate(100 100) scale(0.8046875)">
+
+<rect width="1024" height="1024" fill="url(#paint0_linear_3977_232)"/>
+<path d="M753.753 526.644C784.995 557.886 784.995 608.539 753.753 639.781L570.714 822.82C539.472 854.061 488.819 854.061 457.578 822.82L274.538 639.781C243.297 608.539 243.297 557.886 274.538 526.644L287.503 513.679L453.607 679.783C484.849 711.025 535.503 711.025 566.745 679.783L736.818 509.708L753.753 526.644ZM457.578 343.605C488.819 312.363 539.472 312.363 570.714 343.605L728.332 501.223L558.259 671.297C531.703 697.853 488.648 697.853 462.092 671.297L295.989 505.194L457.578 343.605ZM453.607 200.569C484.605 169.571 534.712 169.329 566.008 199.842L566.745 200.569L749.783 383.607C781.025 414.849 781.025 465.503 749.783 496.745L736.818 509.708L728.332 501.223L741.297 488.259C767.853 461.704 767.853 418.648 741.297 392.092L558.259 209.054C531.703 182.499 488.648 182.499 462.092 209.054L279.054 392.092C252.498 418.648 252.498 461.704 279.054 488.259L295.989 505.194L287.503 513.679L270.569 496.745C239.327 465.503 239.327 414.849 270.569 383.607L453.607 200.569Z" fill="white"/>
 <defs>
-<linearGradient id="paint0_linear_3977_232" x1="627.819" y1="400.471" x2="933.36" y2="706.012" gradientUnits="userSpaceOnUse">
-<stop stop-color="#4285F4"/>
-<stop offset="1" stop-color="#264D8E"/>
+<linearGradient id="paint0_linear_3977_232" x1="-3.8147e-06" y1="512" x2="1005.71" y2="512" gradientUnits="userSpaceOnUse">
+<stop stop-color="#9400D3"/>
+<stop offset="1" stop-color="#3D2EB3"/>
 </linearGradient>
 </defs>
+
+  </g></g>
 </svg>

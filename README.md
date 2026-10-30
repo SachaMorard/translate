@@ -1,6 +1,6 @@
 # Translation App
 
-A macOS translation app for French, English, Spanish and Portuguese, using Edgee for text translation and OpenAI for live audio transcription.
+A macOS translation app for French, English, Spanish and Portuguese, using Edgee for text translation and OpenAI for live audio translation.
 
 ## Features
 
@@ -26,8 +26,9 @@ A macOS translation app for French, English, Spanish and Portuguese, using Edgee
 
 3. **Enable live audio (optional):**
    Add `OPENAI_API_KEY=your-openai-key` to `.env`. The audio feature uses OpenAI's
-   `gpt-live-transcribe` Realtime API, then translates each segment with a dedicated low-latency
-   OpenAI model through Edgee (`EDGEE_LIVE_MODEL`, default: GPT-4.1 mini). An Edgee key alone cannot access the transcription endpoint.
+   `gpt-realtime-translate` API for direct live translation, with
+   `gpt-realtime-whisper` for the original transcript. Live audio requires an OpenAI
+   key; it does not use Edgee.
 
 4. **Run the app:**
    ```bash
@@ -48,22 +49,31 @@ language. Spell checking preserves the original language and supports all four l
 
 ### Live Audio
 1. Select your language pair, then open **Live audio**.
-2. Select **Microphone**, **Computer audio**, or both, and click **Start capture**.
-3. Allow the macOS microphone and system/screen audio recording permissions when requested.
-4. Transcripts appear as speech arrives; a provisional translation starts while speech is still being transcribed.
-   Translations stream progressively and are refined with the final transcript after
-   a 400 ms pause or at most five seconds of continuous speech. Network/model latency still applies. Both directions
-   of the selected pair are translated automatically.
-5. Click **Stop** to release capture immediately and finish pending subtitles
-   (up to 20 seconds). **Copy subtitles** copies the translated history currently shown.
+2. Live audio translates into the **right-hand language in the header**. Use the
+   swap button between the languages to reverse their order in one click.
+3. Select **Microphone**, **Computer audio**, or both, and click **Start capture**.
+4. Allow the macOS microphone and system/screen audio recording permissions when requested.
+5. Original transcripts appear above translations as speech arrives. The destination
+   applies to both sources and does not automatically reverse when the speaker
+   switches languages. Stop capture before changing languages.
+6. Click **Stop** to release capture and finish pending subtitles (up to 20 seconds).
+   **Copy subtitles** copies the translated history. **Clean** clears it without
+   stopping capture.
 
-Use headphones when capturing both sources to avoid transcribing speaker output
-again through the microphone. The two sources have separate transcription sessions.
-Each segment can trigger one provisional translation and one final translation,
-so this uses more translation requests than final-only subtitles.
-The history retains the latest 200 segments. Starting a new capture clears the history.
-Audio is streamed to OpenAI and transcripts are sent to Edgee for translation;
-this app does not write audio or subtitle history to disk. Closing the window stops capture.
+Live audio uses `gpt-realtime-translate` directly through OpenAI. It streams
+24 kHz mono PCM continuously, including silence. Each enabled source has a separate
+connection. Original transcripts come from `gpt-realtime-whisper`; translated
+speech returned by the API is discarded, so only subtitles are displayed.
+The API supplies continuous fragments rather than sentence IDs. Captions are
+therefore grouped into 10-second stream blocks with approximate source/translation
+alignment. The history retains the latest 200 blocks; starting capture clears it.
+
+Use headphones when capturing both sources to avoid capturing speaker output again
+through the microphone. Continuous audio, including quiet periods, is billed;
+stop capture when finished. The app does not save audio or subtitle history to
+disk. Closing the window stops capture.
+
+Protocol: https://developers.openai.com/api/docs/guides/realtime-translation
 
 System audio capture requires **macOS 14.2 or later**. The packaged app includes
 microphone and audio capture usage descriptions and the audio input entitlement.
@@ -90,6 +100,22 @@ and no video is sent to the transcription service.
 1. Select text in any application
 2. Press ⌘C three times quickly (within 500ms for each press)
 3. The selected text will be automatically spell checked and replaced
+
+## Visual identity
+
+The desktop interface follows the Edgee console brand guide: Supreme for body
+text, Sentient for headings, neutral underline tabs and the Edgee gradient for
+primary actions. Fonts are bundled locally under `assets/fonts`; no font requests
+leave the app. Light/dark appearance follows macOS.
+
+`assets/logo.svg` keeps the original logo for the interface. `build/icon.svg`
+adds the transparent margins and rounded tile required for a macOS app icon.
+Run `npm run build:icon` on macOS after editing this vector source; `assets/icon.png` is used at
+runtime and `build/icon.icns` is embedded in the macOS bundle. `npm start` also
+updates the project-local Electron host icon, since macOS notifications use the
+host bundle identity. Restart the app after changing its icon; macOS may retain a
+cached icon for previously registered notifications. The installed app uses its
+own bundle icon after rebuilding and replacing the app in Applications.
 
 ## Building
 
@@ -125,10 +151,9 @@ The installed app must remain at the same path after Accessibility permission is
 ## Configuration
 
 Edit `.env` to customize:
-- `OPENAI_API_KEY`: OpenAI API key for live transcription (optional for text-only use)
+- `OPENAI_API_KEY`: OpenAI API key for live translation (optional for text-only use)
 - `EDGEE_API_KEY`: Your Edgee API key
 - `EDGEE_MODEL`: AI model to use (default: gpt-6-luna:openai, an OpenAI model accessed through Edgee)
-- `EDGEE_LIVE_MODEL`: Model used only for live subtitles (default: gpt-4.1-mini:openai). Text translation and shortcuts still use `EDGEE_MODEL`.
 - `SHORTCUT_DELAY_MS`: Time window for double ⌘C (default: 500ms)
 
 ## Troubleshooting
@@ -147,7 +172,7 @@ Edit `.env` to customize:
 ## Validation
 
 - `npm test`: language validation, translation contract, audio session lifecycle,
-  error handling, buffering, silence detection and PCM segmentation.
+  error handling, buffering, continuous PCM capture and final subtitle draining.
 - `npm run test:ui`: Electron integration tests with synthetic audio streams;
   checks language selection, scrolling, subtitle ordering and capture cleanup.
 - Real microphone/system capture still requires a manual check of macOS permissions

@@ -11,9 +11,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getSettings: () => ipcRenderer.invoke('get-settings'),
   setLanguagePair: pair => ipcRenderer.invoke('set-language-pair', pair),
-  startAudio: sources => ipcRenderer.invoke('audio-start', sources),
+  startAudio: options => ipcRenderer.invoke('audio-start', options),
   microphonePermission: () => ipcRenderer.invoke('microphone-permission'),
   sendAudio: packet => ipcRenderer.send('audio-input', packet),
+  clearAudio: id => ipcRenderer.send('audio-clear', id),
   stopAudio: id => ipcRenderer.invoke('audio-stop', id),
   onAudioEvent: callback => {
     const listener = (_event, message) => callback(message);

@@ -4,48 +4,48 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';">
-  <title>Translate App</title>
+  <title>Edgee Translate</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
-    <header class="header">
-      <div class="mode-tabs">
-        <button id="translateTab" class="mode-tab active">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12.87 15.07l-2.54-2.51.03-.03c1.74-1.94 2.98-4.17 3.71-6.53H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"></path>
-          </svg>
+    <div class="navigation-bar">
+      <nav class="mode-tabs" role="tablist" aria-label="Tools">
+        <button id="translateTab" class="mode-tab active" role="tab" aria-controls="translateMode" aria-selected="true" tabindex="0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 8 6 6m-7 0 6-6 2-3M2 5h12M7 2v3m7 16 4-10 4 10m-6.8-3h5.6"/></svg>
           Translate
         </button>
-        <button id="spellCheckTab" class="mode-tab">
+        <button id="spellCheckTab" class="mode-tab" role="tab" aria-controls="spellCheckMode" aria-selected="false" tabindex="-1">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 11l3 3L22 4"></path>
             <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
           </svg>
-          Spell Check
+          Spell check
         </button>
-        <button id="audioTab" class="mode-tab">Live audio <span id="recordingBadge" class="hidden">●</span></button>
-      </div>
-      <div class="language-toolbar" role="group" aria-label="Language pair" title="Automatic translation in both directions · also applies to ⌘C shortcuts">
+        <button id="audioTab" class="mode-tab" role="tab" aria-controls="audioMode" aria-selected="false" tabindex="-1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 10v4m4-7v10m4-14v18m4-15v12m4-10v8m4-6v4"/></svg>Live audio <span id="recordingBadge" class="hidden">●</span></button>
+      </nav>
+      <div class="language-toolbar" role="group" aria-label="Language pair" title="Text: both directions. Live audio: translate into the language on the right.">
         <select id="languageA" aria-label="First language"></select>
-        <span aria-hidden="true">↔</span>
-        <select id="languageB" aria-label="Second language"></select>
+        <button id="swapLanguages" class="language-swap" type="button" title="Swap languages" aria-label="Swap languages"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg></button>
+        <select id="languageB" aria-label="Second language; live audio target" title="Live audio translates into this language"></select>
       </div>
-      <div id="settingsError" class="error-message hidden" role="alert"></div>
-    </header>
+    </div>
+    <div id="settingsError" class="error-message hidden" role="alert"></div>
 
-    <div id="translateMode" class="mode-content active">
+
+    <div id="translateMode" role="tabpanel" aria-labelledby="translateTab" class="mode-content active">
       <main class="main-content">
+        <div class="page-heading"><div><h1>Translate</h1><p>Write in either language. Get the right words in the other.</p></div><span class="quiet-badge">Auto-detect</span></div>
         <div class="translation-panel">
           <div class="input-section">
             <div class="section-header">
-              <span class="section-title">Original Text</span>
+              <label class="section-title" for="sourceText">Original text</label>
               <span id="detectedLangBadge" class="lang-badge hidden"></span>
             </div>
             <textarea
               id="sourceText"
               class="text-input"
-              placeholder="Type or paste text in either selected language..."
+              placeholder="Type or paste your text…"
               spellcheck="false"
             ></textarea>
             <div class="footer">
@@ -59,9 +59,7 @@
               <span class="section-title">Translation</span>
               <span id="targetLangBadge" class="lang-badge hidden"></span>
             </div>
-            <div id="translationOutput" class="text-output">
-              <div class="placeholder">Translation will appear here automatically...</div>
-            </div>
+            <div id="translationOutput" data-placeholder="Your translation will appear here." class="text-output" tabindex="0"></div>
             <div id="loadingIndicator" class="loading-indicator hidden">
               <div class="spinner"></div>
               <span>Translating...</span>
@@ -82,14 +80,16 @@
       </main>
     </div>
 
-    <div id="spellCheckMode" class="mode-content">
+    <div id="spellCheckMode" role="tabpanel" aria-labelledby="spellCheckTab" class="mode-content">
       <main class="main-content">
+        <div class="page-heading"><div><h1>Spell check</h1><p>Polish your spelling and grammar. Keep your own voice.</p></div></div>
         <div class="spellcheck-panel">
           <div class="input-section">
+            <div class="section-header"><label class="section-title" for="spellCheckInput">Original text</label></div>
             <textarea
               id="spellCheckInput"
               class="text-input"
-              placeholder="Type or paste text to check spelling and grammar..."
+              placeholder="Type or paste your text…"
               spellcheck="false"
             ></textarea>
             <div class="footer">
@@ -98,9 +98,8 @@
           </div>
 
           <div class="output-section">
-            <div id="spellCheckOutput" class="text-output">
-              <div class="placeholder">Corrected text will appear here...</div>
-            </div>
+            <div class="section-header"><span class="section-title">Corrected text</span></div>
+            <div id="spellCheckOutput" data-placeholder="Your corrected text will appear here." class="text-output" tabindex="0"></div>
             <div id="spellCheckLoading" class="loading-indicator hidden">
               <div class="spinner"></div>
               <span>Checking spelling...</span>
@@ -121,51 +120,58 @@
       </main>
     </div>
 
-    <div id="audioMode" class="mode-content">
+    <div id="audioMode" role="tabpanel" aria-labelledby="audioTab" class="mode-content">
       <main class="audio-main" data-state="idle">
-        <div class="audio-controls">
-          <div class="audio-sources" role="group" aria-label="Audio sources">
-            <label class="audio-source">
-              <input type="checkbox" id="captureMicrophone" class="source-toggle" checked>
-              <svg class="source-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg>
-              <span class="source-info"><span>Microphone</span><meter id="microphoneLevel" min="0" max="1" value="0" aria-label="Microphone level"></meter></span>
-              <span class="source-switch" aria-hidden="true"></span>
-            </label>
-            <label class="audio-source">
-              <input type="checkbox" id="captureSystem" class="source-toggle" checked>
-              <svg class="source-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8M12 16v5"/></svg>
-              <span class="source-info"><span>Computer audio</span><meter id="systemLevel" min="0" max="1" value="0" aria-label="Computer audio level"></meter></span>
-              <span class="source-switch" aria-hidden="true"></span>
-            </label>
-          </div>
-          <div class="capture-actions">
+        <div class="page-heading audio-heading">
+          <div class="audio-heading-copy">
+            <div class="audio-title">
+              <h1>Live audio</h1>
+              <div class="capture-actions">
             <button id="startAudio" class="audio-button capture-start"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg><span id="startAudioLabel">Start capture</span></button>
             <button id="stopAudio" class="audio-button capture-stop hidden" disabled><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><rect width="12" height="12" rx="2"/></svg><span id="stopAudioLabel">Stop capture</span></button>
+              </div>
+              <span id="audioStatus" class="sr-only" role="status">Ready</span>
+            </div>
+            <p>Follow the conversation, in your language.</p>
           </div>
+          <div class="audio-controls">
+          <div class="audio-sources" role="group" aria-label="Audio sources">
+            <div class="audio-source">
+              <button type="button" id="captureMicrophone" class="source-toggle" aria-label="Microphone" aria-pressed="true" title="Microphone"><svg class="source-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg></button>
+              <span id="microphoneLevel" class="source-level" role="meter" aria-label="Microphone level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i><i></i><i></i><i></i></span>
+            </div>
+            <div class="audio-source">
+              <button type="button" id="captureSystem" class="source-toggle" aria-label="Computer audio" aria-pressed="true" title="Computer audio"><svg class="source-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="18" height="13" rx="2"/><path d="M8 21h8M12 16v5"/></svg></button>
+              <span id="systemLevel" class="source-level" role="meter" aria-label="Computer audio level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i><i></i><i></i><i></i></span>
+            </div>
+          </div>
+
+        </div>
         </div>
         <div id="audioError" class="error-message hidden" role="alert"></div>
-        <div class="subtitle-heading"><h2>Live subtitles</h2><span id="audioStatus" role="status">Ready</span></div>
-        <div id="subtitles" class="subtitles" role="log" aria-label="Live translated subtitles" aria-live="polite" tabindex="0">
-          <p class="subtitle-empty">Your live translations will appear here.</p>
-        </div>
-        <div class="footer audio-footer">
-          <span class="char-count">Latest 200 segments</span>
-          <div class="subtitle-actions">
-            <button id="cleanSubtitles" class="audio-button secondary-button" title="Clear the subtitle history">Clean</button>
-            <button id="copySubtitles" class="audio-button secondary-button" disabled>Copy subtitles</button>
+        <section class="subtitle-panel" aria-label="Live subtitles">
+          <div class="subtitle-heading"><h2>Transcript</h2>
+            <div class="subtitle-actions">
+              <button id="cleanSubtitles" class="audio-button ghost-button" title="Clear the subtitle history">Clean</button>
+              <button id="copySubtitles" class="audio-button secondary-button" disabled><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy subtitles</button>
+            </div>
           </div>
-        </div>
+          <div class="subtitle-stage">
+            <div id="subtitles" class="subtitles" role="log" aria-label="Live translated subtitles" aria-live="polite" tabindex="0"></div>
+            <div class="subtitle-empty" aria-hidden="true">
+              <div class="empty-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 10v4m4-7v10m4-14v18m4-15v12m4-10v8m4-6v4"/></svg></div>
+              <h3>Ready to listen</h3>
+              <p class="idle-message">Choose your audio sources and start capture.</p>
+              <p class="listening-message">Listening. Your subtitles will appear as you speak.</p>
+            </div>
+          </div>
+        </section>
       </main>
     </div>
 
     <footer class="app-footer">
-      <div class="shortcut-info">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"></circle>
-          <path d="M12 16v-4M12 8h.01"></path>
-        </svg>
-        <span>Quick Translate: <kbd>⌘C</kbd> twice • Spell Check: <kbd>⌘C</kbd> three times</span>
-      </div>
+      <div class="shortcut-info"><span><kbd>⌘C</kbd> × 2 <span class="shortcut-label">Quick translate</span></span><span><kbd>⌘C</kbd> × 3 <span class="shortcut-label">Spell check</span></span></div>
+      <span class="footer-brand">Edgee Translate</span>
     </footer>
   </div>
 

@@ -1,8 +1,7 @@
-import { app, BrowserWindow, ipcMain, Notification, desktopCapturer, session, systemPreferences } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification, nativeImage, nativeTheme, desktopCapturer, session, systemPreferences } from 'electron';
 import path from 'path';
 import fs from 'node:fs';
-import { AudioSession } from './audio-session.js';
-import { LiveTranslator } from './live-translator.js';
+import { RealtimeTranslationSession } from './realtime-translation-session.js';
 import config from './config.js';
 import { DEFAULT_PAIR, validatePair } from './languages.js';
 import { fileURLToPath } from 'url';
@@ -11,6 +10,7 @@ import ShortcutHandler from './shortcut-handler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const appIconPath = path.join(__dirname, 'assets', 'icon.png');
 
 let mainWindow;
 let translator;
@@ -40,8 +40,9 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false
     },
-    title: 'Translate App',
-    backgroundColor: '#ffffff'
+    title: 'Edgee Translate',
+    icon: appIconPath,
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1c1924' : '#ffffff'
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
@@ -58,12 +59,16 @@ function showNotification(title, body) {
     new Notification({
       title,
       body,
+      // macOS gets the sender icon from the app bundle. An explicit icon adds
+      // a second image to the notification instead of changing the sender.
+      ...(process.platform === 'darwin' ? {} : { icon: nativeImage.createFromPath(appIconPath) }),
       silent: true
     }).show();
   }
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin') app.dock.setIcon(nativeImage.createFromPath(appIconPath));
   // Initialize translator
   translator = new Translator();
   settingsPath = path.join(app.getPath('userData'), 'language-settings.json');
@@ -174,13 +179,14 @@ ipcMain.handle('set-language-pair', (event, pair) => {
     return { success: true, pair: validated };
   } catch (error) { return { success: false, error: error.message }; }
 });
-ipcMain.handle('audio-start', async (event, sources) => {
+ipcMain.handle('audio-start', async (event, request) => {
   trusted(event);
   try {
     if (audioSession && !audioSession.closed) throw new Error('Audio capture is already running.');
+    const { sources } = request || {};
     const owner = event.sender;
-    const current = new AudioSession({ apiKey: config.OPENAI_API_KEY, translator: new LiveTranslator(),
-      pair: translator.languagePair, sources,
+    const current = new RealtimeTranslationSession({ apiKey: config.OPENAI_API_KEY,
+      pair: translator.languagePair, sources, targetLanguage: translator.languagePair[1],
       emit: message => { if (!owner.isDestroyed()) owner.send('audio-event', message); }
     });
     audioSession = current;
@@ -203,4 +209,9 @@ ipcMain.handle('audio-stop', async (event, id) => {
     await current.stop();
     if (audioSession === current) audioSession = null;
   }
+});
+
+ipcMain.on('audio-clear', (event, id) => {
+  trusted(event);
+  if (audioSession?.id === id) audioSession.clear?.();
 });
