@@ -5,10 +5,13 @@
   "type": "module",
   "main": "main.js",
   "scripts": {
+    "prestart": "node scripts/build-key-server.cjs",
     "start": "electron .",
     "gen-config": "node scripts/gen-config.cjs",
     "prebuild": "node scripts/gen-config.cjs",
-    "build": "electron-builder --mac"
+    "build": "electron-builder --mac",
+    "test": "node --test tests/*.test.js",
+    "test:ui": "electron tests/electron-ui.cjs"
   },
   "keywords": [
     "translation",
@@ -21,13 +24,15 @@
     "dotenv": "^16.0.0",
     "edgee": "^0.1.3",
     "node-global-key-listener": "^0.1.1",
-    "robotjs": "^0.6.0"
+    "robotjs": "^0.6.0",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "electron": "^40.2.1",
     "electron-builder": "^26.7.0"
   },
   "build": {
+    "afterPack": "scripts/build-key-server.cjs",
     "appId": "com.translate.app",
     "asarUnpack": [
       "node_modules/node-global-key-listener/**/*",
@@ -39,7 +44,14 @@
       "hardenedRuntime": true,
       "signIgnore": [
         "node-global-key-listener/bin/MacKeyServer$"
-      ]
+      ],
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Translate speech from your microphone into live subtitles.",
+        "NSAudioCaptureUsageDescription": "Translate the audio playing on your Mac into live subtitles.",
+        "NSScreenCaptureUsageDescription": "Access system audio for live translated subtitles."
+      },
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "files": [
       "**/*",
@@ -47,7 +59,8 @@
       "!.git",
       "!node_modules/.cache",
       "!.env",
-      "!scripts"
+      "!scripts",
+      "!tests"
     ]
   }
 }

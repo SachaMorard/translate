@@ -32,7 +32,7 @@ function parseEnv(filePath) {
 const env = parseEnv(envPath);
 
 // Process env overrides (lets CI inject without .env), but only known keys.
-const keys = ['EDGEE_API_KEY', 'EDGEE_MODEL', 'SHORTCUT_DELAY_MS'];
+const keys = ['OPENAI_API_KEY', 'EDGEE_API_KEY', 'EDGEE_MODEL', 'SHORTCUT_DELAY_MS'];
 const config = {};
 for (const k of keys) {
   config[k] = process.env[k] || env[k] || '';

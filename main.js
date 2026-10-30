@@ -1,5 +1,9 @@
-import { app, BrowserWindow, ipcMain, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification, desktopCapturer, session, systemPreferences } from 'electron';
 import path from 'path';
+import fs from 'node:fs';
+import { AudioSession } from './audio-session.js';
+import config from './config.js';
+import { DEFAULT_PAIR, validatePair } from './languages.js';
 import { fileURLToPath } from 'url';
 import Translator from './translator.js';
 import ShortcutHandler from './shortcut-handler.js';
@@ -10,11 +14,26 @@ const __dirname = path.dirname(__filename);
 let mainWindow;
 let translator;
 let shortcutHandler;
+let audioSession;
+let settingsPath;
+
+// Electron 40 uses CoreAudio taps for macOS 14.2+ system audio capture.
+app.commandLine.appendSwitch('enable-features', 'MacCatapLoopbackAudioForScreenShare');
+
+function trusted(event) {
+  if (event.sender !== mainWindow?.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) {
+    throw new Error('Untrusted window.');
+  }
+}
+function closeAudio() { audioSession?.close(); audioSession = null; }
+
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 700,
+    minWidth: 760,
+    minHeight: 500,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -24,7 +43,10 @@ function createWindow() {
     backgroundColor: '#ffffff'
   });
 
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  mainWindow.on('closed', closeAudio);
+  mainWindow.webContents.on('render-process-gone', closeAudio);
+  mainWindow.webContents.on('did-start-loading', closeAudio);
 
   // Open DevTools in development
   // mainWindow.webContents.openDevTools();
@@ -43,6 +65,23 @@ function showNotification(title, body) {
 app.whenReady().then(() => {
   // Initialize translator
   translator = new Translator();
+  settingsPath = path.join(app.getPath('userData'), 'language-settings.json');
+  try { translator.setLanguagePair(JSON.parse(fs.readFileSync(settingsPath, 'utf8')).pair); }
+  catch { translator.setLanguagePair(DEFAULT_PAIR); }
+
+  session.defaultSession.setPermissionRequestHandler((contents, permission, callback) => {
+    callback(contents === mainWindow?.webContents && ['media', 'display-capture'].includes(permission));
+  });
+  session.defaultSession.setPermissionCheckHandler((contents, permission) =>
+    contents === mainWindow?.webContents && ['media', 'display-capture'].includes(permission));
+  session.defaultSession.setDisplayMediaRequestHandler(async (request, callback) => {
+    if (request.frame !== mainWindow?.webContents.mainFrame || !request.userGesture) return callback({});
+    try {
+      const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 0, height: 0 } });
+      if (!sources.length) return callback({});
+      callback({ video: sources[0], audio: 'loopback' });
+    } catch { callback({}); }
+  });
 
   // Create window first
   createWindow();
@@ -86,6 +125,7 @@ app.on('window-all-closed', function () {
 });
 
 app.on('will-quit', () => {
+  closeAudio();
   if (shortcutHandler) {
     shortcutHandler.stop();
   }
@@ -96,15 +136,6 @@ ipcMain.handle('translate', async (event, { text, sourceLang, targetLang }) => {
   try {
     const translation = await translator.translate(text, sourceLang, targetLang);
     return { success: true, translation };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-});
-
-ipcMain.handle('detect-language', async (event, text) => {
-  try {
-    const lang = translator.detectLanguage(text);
-    return { success: true, language: lang };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -125,5 +156,50 @@ ipcMain.handle('spell-check', async (event, text) => {
     return { success: true, correctedText };
   } catch (error) {
     return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-settings', event => {
+  trusted(event);
+  return { pair: translator.languagePair, audioConfigured: Boolean(config.OPENAI_API_KEY) };
+});
+ipcMain.handle('set-language-pair', (event, pair) => {
+  trusted(event);
+  try {
+    if (audioSession && !audioSession.closed) throw new Error('Stop audio capture before changing languages.');
+    const validated = validatePair(pair);
+    fs.writeFileSync(settingsPath, JSON.stringify({ pair: validated }));
+    translator.setLanguagePair(validated);
+    return { success: true, pair: validated };
+  } catch (error) { return { success: false, error: error.message }; }
+});
+ipcMain.handle('audio-start', async (event, sources) => {
+  trusted(event);
+  try {
+    if (audioSession && !audioSession.closed) throw new Error('Audio capture is already running.');
+    const owner = event.sender;
+    const current = new AudioSession({ apiKey: config.OPENAI_API_KEY, translator,
+      pair: translator.languagePair, sources,
+      emit: message => { if (!owner.isDestroyed()) owner.send('audio-event', message); }
+    });
+    audioSession = current;
+    const id = await current.start();
+    return { success: true, sessionId: id };
+  } catch (error) { return { success: false, error: error.message }; }
+});
+ipcMain.handle('microphone-permission', async event => {
+  trusted(event);
+  return process.platform !== 'darwin' || systemPreferences.askForMediaAccess('microphone');
+});
+ipcMain.on('audio-input', (event, { sessionId, source, ...packet } = {}) => {
+  if (event.sender !== mainWindow?.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) return;
+  if (audioSession?.id === sessionId) audioSession.input(source, packet);
+});
+ipcMain.handle('audio-stop', async (event, id) => {
+  trusted(event);
+  const current = audioSession;
+  if (current?.id === id) {
+    await current.stop();
+    if (audioSession === current) audioSession = null;
   }
 });

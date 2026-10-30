@@ -24,7 +24,14 @@
           </svg>
           Spell Check
         </button>
+        <button id="audioTab" class="mode-tab">Live audio <span id="recordingBadge" class="hidden">●</span></button>
       </div>
+      <div class="language-toolbar" role="group" aria-label="Language pair" title="Automatic translation in both directions · also applies to ⌘C shortcuts">
+        <select id="languageA" aria-label="First language"></select>
+        <span aria-hidden="true">↔</span>
+        <select id="languageB" aria-label="Second language"></select>
+      </div>
+      <div id="settingsError" class="error-message hidden" role="alert"></div>
     </header>
 
     <div id="translateMode" class="mode-content active">
@@ -38,11 +45,12 @@
             <textarea
               id="sourceText"
               class="text-input"
-              placeholder="Type or paste any text in French or English..."
+              placeholder="Type or paste text in either selected language..."
               spellcheck="false"
             ></textarea>
             <div class="footer">
               <span id="sourceCount" class="char-count">0 characters</span>
+              <button id="swapTranslationBtn" class="copy-button hidden" title="Use the translation as the original text and translate again" aria-label="Use the translation as the original text and translate again">↔ Swap</button>
             </div>
           </div>
 
@@ -113,6 +121,27 @@
       </main>
     </div>
 
+    <div id="audioMode" class="mode-content">
+      <main class="audio-main">
+        <div class="audio-controls">
+          <label><input type="checkbox" id="captureMicrophone" checked> Microphone <meter id="microphoneLevel" min="0" max="1" value="0" aria-label="Microphone level"></meter></label>
+          <label><input type="checkbox" id="captureSystem" checked> Computer audio <meter id="systemLevel" min="0" max="1" value="0" aria-label="Computer audio level"></meter></label>
+          <button id="startAudio" class="copy-button">Start capture</button>
+          <button id="stopAudio" class="copy-button stop-button" disabled>Stop</button>
+        </div>
+        <p class="audio-help">Use headphones to avoid capturing the computer audio twice. On macOS, allow microphone and system audio recording. Audio is sent to OpenAI; transcripts are translated via Edgee.</p>
+        <div id="audioError" class="error-message hidden" role="alert"></div>
+        <div class="subtitle-heading"><h2>Live subtitles</h2><span id="audioStatus" role="status">Ready</span></div>
+        <div id="subtitles" class="subtitles" role="log" aria-label="Live translated subtitles" aria-live="polite" tabindex="0">
+          <p class="placeholder">Start capture to see the translation here. Subtitles update after each pause or short segment.</p>
+        </div>
+        <div class="footer">
+          <span class="char-count">Latest 200 segments · audio is not saved</span>
+          <button id="copySubtitles" class="copy-button" disabled>Copy subtitles</button>
+        </div>
+      </main>
+    </div>
+
     <footer class="app-footer">
       <div class="shortcut-info">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -124,6 +153,6 @@
     </footer>
   </div>
 
-  <script src="renderer.js"></script>
+  <script type="module" src="renderer.js"></script>
 </body>
 </html>
